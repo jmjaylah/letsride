@@ -12,12 +12,12 @@
     <color name="divider">#B6B6B6</color>
 
     <color name="maroon">#A6637E</color>
-    <color name="teal">#539b96</color>
+    <color name="teal">#43bc7c</color>
     <color name="brown">#D59874</color>
 
-    //UniRide Theme
-    <color name="gradient0"> #df5a55 </color>
-    <color name="gradient1"> #f9bb72 </color>
+    //LetsRide Theme
+    <color name="gradient0"> #8657c5 </color>
+    <color name="gradient1"> #00d2ff </color>
     <color name="gradient2"> #76afcf</color>
     <color name="gradient3"> #dd6495</color>
     <color name="gradient4"> #72d3b4</color>
@@ -33,7 +33,7 @@
     <color name="organizationColor"> #355C7D </color>
     <color name="waypointColor">#B6B6B6</color>
 
-    <color name="rideRequestColor"> #f9bb72 </color>
+    <color name="rideRequestColor"> #daa520 </color>
     <color name="carpoolColor"> #563d91</color>
     <color name="driveOfferColor"> #dd6495</color>
 

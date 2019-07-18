@@ -19,7 +19,7 @@
     <application
         android:name=".CustomApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/applogoo"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme.NoActionBar">
@@ -28,7 +28,7 @@
             android:value="@integer/google_play_services_version" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC1Y8B3cEVvAFNO59Obu6hC-RF4XfTBOVo" />
+            android:value="AIzaSyCoolLE2VeFnSy2SYTke8_B60Sc_r0Cv1M" />
 
         <activity android:name=".BaseActivity" />
         <activity

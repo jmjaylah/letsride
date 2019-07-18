@@ -17,17 +17,25 @@
 package com.sjsu.se195.uniride;
 
 import android.app.ActivityOptions;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.transition.Slide;
 import android.transition.TransitionInflater;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -35,7 +43,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -64,9 +76,18 @@ import java.util.Map;
 public class  MainActivity extends BaseActivity {
 
     private static final String TAG = "MainActivity";
+
     private ImageButton mSignOut;
     private User user;
     private DatabaseReference mDatabase;
+    private boolean mLocationPermissionGranted = false;
+    private static final int ERROR_DIALOG_REQUEST = 9001;
+    public final int PERMISSIONS_REQUEST_ENABLE_GPS = 9003;
+    public final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 9002;
+
+    private GoogleMap play;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,11 +96,14 @@ public class  MainActivity extends BaseActivity {
         System.out.println(getUid());
         mSignOut = (ImageButton) this.findViewById(R.id.profile_page_sign_out);
         mSignOut.setVisibility(View.GONE);
-        if(this.user == null){
+
+
+        checkMapServices();
+        if (this.user == null) {
             // mSignOut.setVisibility(View.VISIBLE);
-            mSignOut.setOnClickListener(new View.OnClickListener(){
+            mSignOut.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void onClick(View view){
+                public void onClick(View view) {
                     FirebaseAuth.getInstance().signOut();
                     startActivity(new Intent(MainActivity.this, SignInActivity.class));
                     finish();
@@ -90,9 +114,9 @@ public class  MainActivity extends BaseActivity {
         System.out.println("About to start service.");
         mDatabase = FirebaseDatabase.getInstance().getReference();
 
-        findViewById(R.id.driver_mode_button).setOnClickListener(new View.OnClickListener(){
+        findViewById(R.id.driver_mode_button).setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v){
+            public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, MainSubcategoryActivity.class);
                 intent.putExtra(MainSubcategoryActivity.EXTRA_POST_TYPE_TO_SHOW, Post.PostType.RIDER.name());
                 startActivity(intent);
@@ -100,9 +124,9 @@ public class  MainActivity extends BaseActivity {
         });
 
         // "I am a passenger" -> Show me Drive Offers (including Carpools):
-        findViewById(R.id.rider_mode_button).setOnClickListener(new View.OnClickListener(){
+        findViewById(R.id.rider_mode_button).setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v){
+            public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, MainSubcategoryActivity.class);
                 intent.putExtra(MainSubcategoryActivity.EXTRA_POST_TYPE_TO_SHOW, Post.PostType.DRIVER.name());
                 startActivity(intent);
@@ -112,6 +136,118 @@ public class  MainActivity extends BaseActivity {
         setNavBar(this);
 
     }
+
+
+    // MAP START
+
+    private boolean checkMapServices(){
+        if(isServicesOK()){
+            if(isMapsEnabled()){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        Intent enableGpsIntent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS);
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    public boolean isMapsEnabled(){
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
+            return false;
+        }
+        return true;
+    }
+
+    private void getLocationPermission() {
+        /*
+         * Request location permission, so that we can get the location of the
+         * device. The result of the permission request is handled by a callback,
+         * onRequestPermissionsResult.
+         */
+        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            mLocationPermissionGranted = true;
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        }
+    }
+
+    public boolean isServicesOK(){
+        Log.d(TAG, "isServicesOK: checking google services version");
+
+        int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(MainActivity.this);
+
+        if(available == ConnectionResult.SUCCESS){
+            //everything is fine and the user can make map requests
+            Log.d(TAG, "isServicesOK: Google Play Services is working");
+            return true;
+        }
+        else if(GoogleApiAvailability.getInstance().isUserResolvableError(available)){
+            //an error occured but we can resolve it
+            Log.d(TAG, "isServicesOK: an error occured but we can fix it");
+            Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(MainActivity.this, available, ERROR_DIALOG_REQUEST);
+            dialog.show();
+        }else{
+            Toast.makeText(this, "You can't make map requests", Toast.LENGTH_SHORT).show();
+        }
+        return false;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String permissions[],
+                                           @NonNull int[] grantResults) {
+        mLocationPermissionGranted = false;
+        switch (requestCode) {
+            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    mLocationPermissionGranted = true;
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.d(TAG, "onActivityResult: called.");
+        switch (requestCode) {
+            case PERMISSIONS_REQUEST_ENABLE_GPS: {
+                if(mLocationPermissionGranted){
+
+                }
+                else{
+                    getLocationPermission();
+                }
+            }
+        }
+
+    }
+
+
+    //ENDSSSSSSSSSS
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -131,11 +267,11 @@ public class  MainActivity extends BaseActivity {
             startActivity(new Intent(this, ShowOrganizationsActivity.class));
             finish();
             return true;
-        } else if (i == R.id.edit_profile){
+        } else if (i == R.id.edit_profile) {
             startActivity(new Intent(this, AddUserInformation.class));
             finish();
             return true;
-        }else {
+        } else {
             return super.onOptionsItemSelected(item);
         }
     }
@@ -159,8 +295,7 @@ public class  MainActivity extends BaseActivity {
                 }
             });
 
-        }
-        catch (NullPointerException e){
+        } catch (NullPointerException e) {
             System.out.println("Null user");
             this.user = null;
         }
@@ -169,7 +304,7 @@ public class  MainActivity extends BaseActivity {
 
     //This method will push this Firebasetoken online so that
     //  the cloud functions may use it.
-    public void pushTokenToFirebase(){
+    public void pushTokenToFirebase() {
         Map<String, Object> childUpdates = new HashMap<>();
         String instance_id = FirebaseInstanceId.getInstance().getId();
         String instance_token = FirebaseInstanceId.getInstance().getToken();
@@ -178,9 +313,10 @@ public class  MainActivity extends BaseActivity {
         System.out.println(FirebaseInstanceId.getInstance().getId());
         System.out.println(instance_token);
 
-        childUpdates.put("/users/"+getUid()+"/firebase_instance_id/", instance_id);
-        childUpdates.put("/users/"+getUid()+"/firebase_instance_token/", instance_token);
+        childUpdates.put("/users/" + getUid() + "/firebase_instance_id/", instance_id);
+        childUpdates.put("/users/" + getUid() + "/firebase_instance_token/", instance_token);
         mDatabase.updateChildren(childUpdates);
     }
+
 
 }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">UniRide</string>
+    <string name="app_name">LetsRide</string>
     <string name="action_settings">Settings</string>
     <string name="menu_login">Log in</string>
     <string name="menu_logout">Log out</string>
@@ -45,7 +45,7 @@
     <string name="info_first">First Name</string>
     <string name="info_last">Last Name</string>
     <string name="info_date">Date of Birth</string>
-    <string name="info_phone">(555)555-555</string>
+    <string name="info_phone">+254.....</string>
     <string name="info_choose_info">Choose Your Default Organization</string>
     <string name="info_save">Save Information</string>
     <string name="info_skip">Skip This</string>
